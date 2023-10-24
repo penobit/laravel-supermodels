@@ -17,7 +17,7 @@
             "email": "info@penobit.com"
         }
     ],
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "extra": {
         "laravel": {
             "providers": [
