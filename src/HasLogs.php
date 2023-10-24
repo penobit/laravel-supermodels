@@ -51,7 +51,7 @@ trait HasLogs {
      * boot method for HasLogs trait.
      */
     protected static function bootHasLogs(): void {
-        static::deleting(function(Model $model): void {
+        static::deleting(function($model): void {
             $model->logs()->delete();
         });
     }

@@ -2,6 +2,9 @@
 
 namespace Penobit\SuperModels;
 
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Optional;
+
 trait HasMeta {
     /**
      * get resource metadata records.
@@ -52,7 +55,7 @@ trait HasMeta {
      *
      * @return null|array<string, mixed>|string
      */
-    public function getMeta(mixed $meta = null, mixed $default = null): string|array|null {
+    public function getMeta(mixed $meta = null, mixed $default = null): null|array|string {
         if (empty($meta)) {
             return $this->metadata()->get();
         }
@@ -136,7 +139,7 @@ trait HasMeta {
      * boot method for HasMetadata trait.
      */
     protected static function bootHasMetadata(): void {
-        static::deleting(function(Model $model): void {
+        static::deleting(function($model): void {
             $model->metadata()->delete();
         });
     }
