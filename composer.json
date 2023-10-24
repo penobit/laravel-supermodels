@@ -1,6 +1,5 @@
 {
     "name": "penobit/laravel-supermodels",
-    "version": "1.0.0",
     "description": "add logs and metadata to any laravel model easy and fast.",
     "type": "library",
     "require": {
