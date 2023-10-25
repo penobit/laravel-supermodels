@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Optional;
 
 trait HasMeta {
+    protected array $cachedMeta = [];
+
     /**
      * get resource metadata records.
      */
@@ -28,6 +30,10 @@ trait HasMeta {
             $upsert = [];
 
             foreach ($meta as $k => $v) {
+                if (is_array($v) || is_object($v)) {
+                    $v = serialize($v);
+                }
+
                 $upsert[] = [
                     'name' => $k,
                     'value' => $v,
@@ -41,11 +47,13 @@ trait HasMeta {
             $upsert = collect($upsert)->filter(fn ($x) => null !== $x['value'])->toArray();
 
             $this->metadata()->upsert($upsert, ['name'], ['value']);
+            $this->reloadMetaCache();
 
             return;
         }
 
         $this->metadata()->updateOrCreate(['name' => $meta], ['value' => $value]);
+        $this->reloadMetaCache();
     }
 
     /**
@@ -55,21 +63,25 @@ trait HasMeta {
      *
      * @return null|array<string, mixed>|string
      */
-    public function getMeta(mixed $meta = null, mixed $default = null): null|array|string {
+    public function getMeta(mixed $meta = null, mixed $default = null, bool $cache = true): mixed {
+        if (!$cache) {
+            $this->reloadMetaCache();
+        }
+
+        $metadata = collect($this->cacheMeta());
+
         if (empty($meta)) {
-            return $this->metadata()->get();
+            return $metadata;
         }
 
         if (is_array($meta) || is_object($meta) || $meta instanceof \Traversable) {
             $meta = collect($meta)->toArray();
-            $data = $this->metadata()->whereIn('name', $meta)->get();
+            $data = $metadata->whereIn('name', $meta)->first();
 
             return $data->isEmpty() ? $default : $data->map(fn ($m) => $m->value);
         }
 
-        $value = $this->metadata()->whereName($meta)->first();
-
-        return optional($value)->value ?? $default;
+        return $metadata[$meta] ?? $default;
     }
 
     /**
@@ -90,8 +102,19 @@ trait HasMeta {
                 $metadata = $this->metadata()->whereName($meta)->first();
             }
         }
+        // dd($metadata->get()->pluck('value', 'name'), $meta);
 
-        return $metadata->pluck('value', 'name')->toArray();
+        return $metadata->get()->each(function($m) {
+            if (preg_match('/^[\[\{]/', $m->value) !== false) {
+                try {
+                    $m->value = unserialize($m->value);
+                } catch (\Throwable $e) {
+                    $m->value = $m->value;
+                }
+            }
+
+            return $m;
+        })->pluck('value', 'name')->toArray();
     }
 
     /**
@@ -111,6 +134,7 @@ trait HasMeta {
     public function removeMeta(mixed $meta = null): void {
         if (empty($meta)) {
             $this->metadata()->delete();
+            $this->reloadMetaCache();
 
             return;
         }
@@ -119,11 +143,13 @@ trait HasMeta {
             $meta = collect($meta)->toArray();
 
             $this->metadata()->whereIn('name', $meta)->delete();
+            $this->reloadMetaCache();
 
             return;
         }
 
         $this->metadata()->whereName($meta)->delete();
+        $this->reloadMetaCache();
     }
 
     /**
@@ -131,8 +157,39 @@ trait HasMeta {
      *
      * @return array<string, mixed>
      */
-    public function getMetaAttribute(): array|Optional {
-        return optional($this->metadata->pluck('value', 'name'));
+    public function getMetaAttribute(): Optional {
+        return optional((object) $this->cacheMeta());
+    }
+
+    /**
+     * get record's metadata key-value array as an attribute.
+     *
+     * @return array<string, mixed>
+     */
+    public function getMetaArrayAttribute(): Optional {
+        return optional($this->cacheMeta());
+    }
+
+    /**
+     * cache current model's metada to avoid extra db connections.
+     *
+     * @return array<string, mixed> cached metadata
+     */
+    public function cacheMeta(): array {
+        if (empty($this->cachedMeta)) {
+            return $this->cachedMeta = $this->getMetaArray();
+        }
+
+        return $this->cachedMeta;
+    }
+
+    /**
+     * reload model's cached metadata.
+     *
+     * @return array<string, mixed> cached metadata
+     */
+    public function reloadMetaCache(): array {
+        return $this->cachedMeta = $this->getMetaArray();
     }
 
     /**

@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class Log extends Model {
     use HasFactory;
 
+    protected $table = 'logs';
+
     protected $fillable = [
         'action',
         'user_id',
@@ -25,6 +27,10 @@ class Log extends Model {
         'params' => 'object',
         'created_at' => 'date:Y-m-d H:i',
     ];
+
+    public function __construct() {
+        $this->table = config('supermodels.tables.log');
+    }
 
     public function model() {
         return $this->morphTo();

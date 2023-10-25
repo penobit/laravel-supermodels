@@ -7,7 +7,7 @@ return [
         'log' => Penobit\SuperModels\Models\Log::class,
     ],
     'tables' => [
-        'meta' => 'meta',
+        'meta' => 'metadata',
         'log' => 'logs',
     ],
 ];
