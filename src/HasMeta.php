@@ -104,7 +104,6 @@ trait HasMeta {
                 $metadata = $this->metadata()->whereName($meta)->first();
             }
         }
-        // dd($metadata->get()->pluck('value', 'name'), $meta);
 
         return $metadata->get()->each(function($m) {
             if (preg_match('/^[\[\{]/', $m->value) !== false) {
@@ -162,7 +161,7 @@ trait HasMeta {
      * @return array<string, mixed>
      */
     public function getMetaAttribute(): Optional {
-        return optional((object) $this->cacheMeta());
+        return optional($this->getMetaObject());
     }
 
     /**
