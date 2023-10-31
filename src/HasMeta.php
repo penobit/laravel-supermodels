@@ -24,7 +24,7 @@ trait HasMeta {
      * @param array<string, mixed>|string|Traversable $meta metadata name or array of metadata
      * @param mixed $value metadata value
      */
-    public function setMeta(mixed $meta, mixed $value = null): void {
+    public function setMeta(mixed $meta, mixed $value = null): static {
         if (is_array($meta) || is_object($meta) || $meta instanceof \Traversable) {
             $meta = collect($meta);
             $upsert = [];
@@ -49,11 +49,13 @@ trait HasMeta {
             $this->metadata()->upsert($upsert, ['name'], ['value']);
             $this->reloadMetaCache();
 
-            return;
+            return $this;
         }
 
         $this->metadata()->updateOrCreate(['name' => $meta], ['value' => $value]);
         $this->reloadMetaCache();
+
+        return $this;
     }
 
     /**
@@ -131,12 +133,12 @@ trait HasMeta {
      *
      * @param array<string>|object|string $meta
      */
-    public function removeMeta(mixed $meta = null): void {
+    public function removeMeta(mixed $meta = null): static {
         if (empty($meta)) {
             $this->metadata()->delete();
             $this->reloadMetaCache();
 
-            return;
+            return $this;
         }
 
         if (is_array($meta) || is_object($meta) || $meta instanceof \Traversable) {
@@ -145,11 +147,13 @@ trait HasMeta {
             $this->metadata()->whereIn('name', $meta)->delete();
             $this->reloadMetaCache();
 
-            return;
+            return $this;
         }
 
         $this->metadata()->whereName($meta)->delete();
         $this->reloadMetaCache();
+
+        return $this;
     }
 
     /**
