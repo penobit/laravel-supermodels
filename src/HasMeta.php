@@ -94,28 +94,30 @@ trait HasMeta {
      * @return array<string, mixed>
      */
     public function getMetaArray(mixed $meta = null): array {
-        $metadata = $this->metadata();
+        $metadata = $this->cacheMeta();
 
         if (!empty($meta)) {
             if (is_array($meta) || is_object($meta) || $meta instanceof \Traversable) {
                 $meta = collect($meta)->toArray();
-                $metadata = $metadata->whereIn('name', $meta)->get()->map(fn ($m) => $m->value);
-            } else {
-                $metadata = $this->metadata()->whereName($meta)->first();
+                // $metadata = $metadata->whereIn('name', $meta);
+                // $metadata = $metadata->map(fn ($m) => $m->value);
+                $res = [];
+                foreach ($meta as $key) {
+                    $res[$key] = $metadata[$key];
+                }
+
+                return $res;
             }
+
+            return $metadata[$meta] ?? null;
         }
 
-        return $metadata->get()->each(function($m) {
-            if (preg_match('/^[\[\{]/', $m->value) !== false) {
-                try {
-                    $m->value = unserialize($m->value);
-                } catch (\Throwable $e) {
-                    $m->value = $m->value;
-                }
-            }
+        $res = [];
+        foreach ($metadata as $key => $value) {
+            $res[$key] = $this->parseMetadataValue($value);
+        }
 
-            return $m;
-        })->pluck('value', 'name')->toArray();
+        return $res;
     }
 
     /**
@@ -180,7 +182,7 @@ trait HasMeta {
      */
     public function cacheMeta(): array {
         if (empty($this->cachedMeta)) {
-            return $this->cachedMeta = $this->getMetaArray();
+            return $this->cachedMeta = $this->metadata()->pluck('value', 'name')->toArray();
         }
 
         return $this->cachedMeta;
@@ -193,6 +195,39 @@ trait HasMeta {
      */
     public function reloadMetaCache(): array {
         return $this->cachedMeta = $this->getMetaArray();
+    }
+
+    /**
+     * Parse saved meta value to it's original type.
+     */
+    protected function parseMetadataValue(mixed $value, mixed $default = null): mixed {
+        if (empty($value)) {
+            return $default ?? null;
+        }
+
+        if (is_bool($value) || in_array(needle: $value, haystack: ['true', 'false', '1', '0', 'yes', 'no'], strict: true)) {
+            return is_bool($value) ? $value : (
+                in_array(needle: $value, haystack: ['true', '1', 'yes'], strict: true)
+            );
+        }
+
+        if (is_string($value)) {
+            $unserialized = @unserialize($value);
+
+            if (false !== $unserialized) {
+                return $unserialized;
+            }
+
+            if (preg_match('/^[\[\{]/', $value) !== false) {
+                $jsonDecoded = @json_decode(json: $value);
+
+                if (false !== $jsonDecoded && (is_array($jsonDecoded) || is_object($jsonDecoded))) {
+                    return $jsonDecoded;
+                }
+            }
+        }
+
+        return $value;
     }
 
     /**
