@@ -18,6 +18,8 @@ return new class() extends Migration {
             $table->string('action');
             $table->longText('content');
             $table->boolean('notified')->nullable()->default(false);
+            $table->text('user_agent')->nullable();
+            $table->ipAddress('ip')->nullable();
             $table->json('params')->nullable();
 
             $table->timestamps();
