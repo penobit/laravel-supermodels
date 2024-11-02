@@ -52,6 +52,10 @@ trait HasMeta {
             return $this;
         }
 
+        if (is_array($value) || is_object($value) || $value instanceof \Traversable) {
+            $value = serialize($value);
+        }
+
         $this->metadata()->updateOrCreate(['name' => $meta], ['value' => $value]);
         $this->reloadMetaCache();
 
@@ -83,7 +87,7 @@ trait HasMeta {
             return $data->isEmpty() ? $default : $data->map(fn ($m) => $m->value);
         }
 
-        return $metadata[$meta] ?? $default;
+        return @unserialize($metadata[$meta]) ?? $metadata[$meta] ?? $default;
     }
 
     /**
