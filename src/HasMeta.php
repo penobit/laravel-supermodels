@@ -87,7 +87,7 @@ trait HasMeta {
             return $data->isEmpty() ? $default : $data->map(fn ($m) => $m->value);
         }
 
-        return @unserialize($metadata[$meta]) ?? $metadata[$meta] ?? $default;
+        return @unserialize($metadata[$meta]) ?: $metadata[$meta] ?? $default;
     }
 
     /**
