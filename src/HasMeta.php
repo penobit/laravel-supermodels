@@ -96,8 +96,8 @@ trait HasMeta {
      *
      * @return array<string, mixed>
      */
-    public function getMetaArray(mixed $meta = null): array {
-        $metadata = $this->cacheMeta();
+    public function getMetaArray(mixed $meta = null, bool $cache = true): array {
+        $metadata = $this->cacheMeta($cache);
 
         if (!empty($meta)) {
             if (is_array($meta) || is_object($meta) || $meta instanceof \Traversable) {
@@ -174,8 +174,8 @@ trait HasMeta {
      *
      * @return array<string, mixed>
      */
-    public function getMetaArrayAttribute(): Optional {
-        return optional($this->cacheMeta());
+    public function getMetaArrayAttribute(): ?array {
+        return $this->cacheMeta() ?? [];
     }
 
     /**
@@ -183,9 +183,10 @@ trait HasMeta {
      *
      * @return array<string, mixed> cached metadata
      */
-    public function cacheMeta(): array {
-        if (empty($this->cachedMeta)) {
-            return $this->cachedMeta = $this->metadata()->pluck('value', 'name')->toArray();
+    public function cacheMeta($cache = true): array {
+        if (empty($this->cachedMeta) || !$cache) {
+            $cachedMeta = $this->metadata()->pluck('value', 'name')->toArray();
+            $this->cachedMeta = collect($cachedMeta)->map(fn ($m) => $this->parseMetadataValue($m))->toArray();
         }
 
         return $this->cachedMeta;
@@ -197,7 +198,7 @@ trait HasMeta {
      * @return array<string, mixed> cached metadata
      */
     public function reloadMetaCache(): array {
-        return $this->cachedMeta = $this->getMetaArray();
+        return $this->cachedMeta = $this->getMetaArray(null, false);
     }
 
     /**
