@@ -83,10 +83,10 @@ trait HasMeta {
         if (is_array($meta) || is_object($meta) || $meta instanceof \Traversable) {
             $meta = collect($meta)->toArray();
 
-            return $metadata->filter(fn ($m, $k) => in_array($k, $meta))->map(fn ($m) => $this->parseMetadataValue($m))->toArray();
+            return $metadata->filter(fn ($m, $k) => in_array($k, $meta))->map(fn ($m) => $this->parseMetadataValue($m, $default))->toArray();
         }
 
-        return $this->parseMetadataValue($metadata->get($meta, $default));
+        return $this->parseMetadataValue($metadata->get($meta, $default), $default);
     }
 
     /**
